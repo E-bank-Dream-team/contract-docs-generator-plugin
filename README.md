@@ -1,9 +1,17 @@
-# Getting Started
+# Contract documentation generator plugin
 
-### Reference Documentation
-For further reference, please consider the following sections:
+Maven plugin for generating documentation from existing contracts written in Groovy.
 
-* [Official Apache Maven documentation](https://maven.apache.org/guides/index.html)
-* [Spring Boot Maven Plugin Reference Guide](https://docs.spring.io/spring-boot/docs/2.4.0/maven-plugin/reference/html/)
-* [Create an OCI image](https://docs.spring.io/spring-boot/docs/2.4.0/maven-plugin/reference/html/#build-image)
+## How to
+
+### Testing plugin
+First step is to install plugin in our local maven repository:
+
+`mvn clean install`
+
+### Executing plugin
+
+After installing plugin in local repository we can run a goal of this plugin using following command:
+
+`mvn com.example:contract-docs-generator-maven-plugin:0.0.1-SNAPSHOT:contract-docs-generator`
 
