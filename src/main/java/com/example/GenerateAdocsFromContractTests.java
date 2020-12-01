@@ -18,82 +18,87 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.MavenProject;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.contract.spec.Contract;
 import org.springframework.cloud.contract.verifier.util.ContractVerifierDslConverter;
-import org.springframework.core.io.Resource;
 
-@Mojo(name = "contract-docs-generator", defaultPhase = LifecyclePhase.COMPILE)
+@Mojo(name = "contract-docs-generator", defaultPhase = LifecyclePhase.PROCESS_TEST_RESOURCES)
 public class GenerateAdocsFromContractTests extends AbstractMojo {
 	
-	@Parameter(defaultValue = "${project}", required = true, readonly = true)
-	MavenProject project;
-	
-	@Parameter(defaultValue = "${project.compileClasspathElements}", readonly = true, required = true)
+	@Parameter(defaultValue = "${project.testClasspathElements}", readonly = true, required = true)
 	private List<String> compilePath;
 	
-	@Value("classpath:contracts")
-	Resource contracts;
 	private static String header = "= Application Contracts\n" + "\n"
 			+ "In the following document you'll be able to see all the contracts that are present for this application.\n"
 			+ "\n" + "== Contracts\n";
 	
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
-		
-		try {
-			generateDocs();
-		} catch (NullPointerException | IOException e) {
-			e.printStackTrace();
+		if (!compilePath.isEmpty()) {
+			try {
+				generateDocs(compilePath);
+			} catch (IOException e) {
+				getLog().error("There was error during generating docs!", e);
+			}
 		}
-		
 	}
 	
-	public void generateDocs() throws IOException {
+	public void generateDocs(List<String> paths) throws IOException {
 		final StringBuilder stringBuilder = new StringBuilder();
 		stringBuilder.append(header);
 		
-		if (contracts != null) {
-			final Path rootDir = contracts.getFile()
-					.toPath();
+		paths.forEach(path -> {
+			getLog().info("Path: " + path);
 			
-			Files.walkFileTree(rootDir, new FileVisitor<Path>() {
-				private Pattern pattern = Pattern.compile("^.*groovy$");
+			if (path != null) {
+				getLog().info("Generation of documentation started!");
+				final Path rootDir = new File(path)
+						.toPath();
 				
-				@Override
-				public FileVisitResult preVisitDirectory(Path path, BasicFileAttributes atts)
-						throws IOException {
-					return FileVisitResult.CONTINUE;
+				try {
+					Files.walkFileTree(rootDir, new FileVisitor<Path>() {
+						private Pattern pattern = Pattern.compile("^.*groovy$");
+						
+						@Override
+						public FileVisitResult preVisitDirectory(Path path, BasicFileAttributes atts)
+								throws IOException {
+							return FileVisitResult.CONTINUE;
+						}
+						
+						@Override
+						public FileVisitResult visitFile(Path path, BasicFileAttributes mainAtts)
+								throws IOException {
+							getLog().info("File with path: " + path.getFileName()
+									.toString());
+							boolean matches = this.pattern.matcher(path.toString())
+									.matches();
+							if (matches) {
+								getLog().info("dfdsf");
+								appendContract(stringBuilder, path);
+							}
+							return FileVisitResult.CONTINUE;
+						}
+						
+						@Override
+						public FileVisitResult postVisitDirectory(Path path, IOException exc)
+								throws IOException {
+							return FileVisitResult.CONTINUE;
+						}
+						
+						@Override
+						public FileVisitResult visitFileFailed(Path path, IOException exc)
+								throws IOException {
+							// If the root directory has failed it makes no sense to continue
+							return path.equals(rootDir) ? FileVisitResult.TERMINATE : FileVisitResult.CONTINUE;
+						}
+					});
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
-				
-				@Override
-				public FileVisitResult visitFile(Path path, BasicFileAttributes mainAtts)
-						throws IOException {
-					boolean matches = this.pattern.matcher(path.toString())
-							.matches();
-					if (matches) {
-						appendContract(stringBuilder, path);
-					}
-					return FileVisitResult.CONTINUE;
-				}
-				
-				@Override
-				public FileVisitResult postVisitDirectory(Path path, IOException exc)
-						throws IOException {
-					return FileVisitResult.CONTINUE;
-				}
-				
-				@Override
-				public FileVisitResult visitFileFailed(Path path, IOException exc)
-						throws IOException {
-					// If the root directory has failed it makes no sense to continue
-					return path.equals(rootDir) ? FileVisitResult.TERMINATE : FileVisitResult.CONTINUE;
-				}
-			});
-		} else {
-			getLog().info("No2 contracts found! Generating documentation from contract tests aborted!");
-		}
+			} else {
+				getLog().info("No contracts found! Generating documentation from contract tests aborted!");
+			}
+		});
 		
 		// String outputAdoc = asciidoctor.convert(stringBuilder.toString(), new HashMap<String, Object>());
 		String outputAdoc = stringBuilder.toString();
@@ -116,6 +121,7 @@ public class GenerateAdocsFromContractTests extends AbstractMojo {
 				.toFile(), path.toFile());
 		// TODO: Can be parametrized
 		contracts.forEach(contract -> {
+			System.out.println("XXXXX");
 			stringBuilder.append("### ")
 					.append(path.getFileName()
 							.toString())
