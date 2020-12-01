@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collection;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import org.apache.maven.plugin.AbstractMojo;
@@ -16,6 +17,8 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.contract.spec.Contract;
 import org.springframework.cloud.contract.verifier.util.ContractVerifierDslConverter;
@@ -24,7 +27,12 @@ import org.springframework.core.io.Resource;
 @Mojo(name = "contract-docs-generator", defaultPhase = LifecyclePhase.COMPILE)
 public class GenerateAdocsFromContractTests extends AbstractMojo {
 	
-	// TODO: Can be parametrized
+	@Parameter(defaultValue = "${project}", required = true, readonly = true)
+	MavenProject project;
+	
+	@Parameter(defaultValue = "${project.compileClasspathElements}", readonly = true, required = true)
+	private List<String> compilePath;
+	
 	@Value("classpath:contracts")
 	Resource contracts;
 	private static String header = "= Application Contracts\n" + "\n"
@@ -36,7 +44,7 @@ public class GenerateAdocsFromContractTests extends AbstractMojo {
 		
 		try {
 			generateDocs();
-		} catch (IOException e) {
+		} catch (NullPointerException | IOException e) {
 			e.printStackTrace();
 		}
 		
@@ -46,42 +54,46 @@ public class GenerateAdocsFromContractTests extends AbstractMojo {
 		final StringBuilder stringBuilder = new StringBuilder();
 		stringBuilder.append(header);
 		
-		final Path rootDir = this.contracts.getFile()
-				.toPath();
-		
-		Files.walkFileTree(rootDir, new FileVisitor<Path>() {
-			private Pattern pattern = Pattern.compile("^.*groovy$");
+		if (contracts != null) {
+			final Path rootDir = contracts.getFile()
+					.toPath();
 			
-			@Override
-			public FileVisitResult preVisitDirectory(Path path, BasicFileAttributes atts)
-					throws IOException {
-				return FileVisitResult.CONTINUE;
-			}
-			
-			@Override
-			public FileVisitResult visitFile(Path path, BasicFileAttributes mainAtts)
-					throws IOException {
-				boolean matches = this.pattern.matcher(path.toString())
-						.matches();
-				if (matches) {
-					appendContract(stringBuilder, path);
+			Files.walkFileTree(rootDir, new FileVisitor<Path>() {
+				private Pattern pattern = Pattern.compile("^.*groovy$");
+				
+				@Override
+				public FileVisitResult preVisitDirectory(Path path, BasicFileAttributes atts)
+						throws IOException {
+					return FileVisitResult.CONTINUE;
 				}
-				return FileVisitResult.CONTINUE;
-			}
-			
-			@Override
-			public FileVisitResult postVisitDirectory(Path path, IOException exc)
-					throws IOException {
-				return FileVisitResult.CONTINUE;
-			}
-			
-			@Override
-			public FileVisitResult visitFileFailed(Path path, IOException exc)
-					throws IOException {
-				// If the root directory has failed it makes no sense to continue
-				return path.equals(rootDir) ? FileVisitResult.TERMINATE : FileVisitResult.CONTINUE;
-			}
-		});
+				
+				@Override
+				public FileVisitResult visitFile(Path path, BasicFileAttributes mainAtts)
+						throws IOException {
+					boolean matches = this.pattern.matcher(path.toString())
+							.matches();
+					if (matches) {
+						appendContract(stringBuilder, path);
+					}
+					return FileVisitResult.CONTINUE;
+				}
+				
+				@Override
+				public FileVisitResult postVisitDirectory(Path path, IOException exc)
+						throws IOException {
+					return FileVisitResult.CONTINUE;
+				}
+				
+				@Override
+				public FileVisitResult visitFileFailed(Path path, IOException exc)
+						throws IOException {
+					// If the root directory has failed it makes no sense to continue
+					return path.equals(rootDir) ? FileVisitResult.TERMINATE : FileVisitResult.CONTINUE;
+				}
+			});
+		} else {
+			getLog().info("No2 contracts found! Generating documentation from contract tests aborted!");
+		}
 		
 		// String outputAdoc = asciidoctor.convert(stringBuilder.toString(), new HashMap<String, Object>());
 		String outputAdoc = stringBuilder.toString();
