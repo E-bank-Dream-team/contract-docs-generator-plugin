@@ -27,6 +27,12 @@ public class GenerateAdocsFromContractTests extends AbstractMojo {
 	@Parameter(defaultValue = "${project.testClasspathElements}", readonly = true, required = true)
 	private List<String> compilePath;
 	
+	@Parameter(property = "outputDirPath", defaultValue = "target/generated-snippets")
+	private String outputDirPath;
+	
+	@Parameter(property = "outputFileName", defaultValue = "contracts.adoc")
+	private String outputFileName;
+	
 	private static String header = "= Application Contracts\n" + "\n"
 			+ "In the following document you'll be able to see all the contracts that are present for this application.\n"
 			+ "\n" + "== Contracts\n";
@@ -47,12 +53,9 @@ public class GenerateAdocsFromContractTests extends AbstractMojo {
 		stringBuilder.append(header);
 		
 		paths.forEach(path -> {
-			getLog().info("Path: " + path);
-			
 			if (path != null) {
-				getLog().info("Generation of documentation started!");
-				final Path rootDir = new File(path)
-						.toPath();
+				getLog().info("Processing path: " + path);
+				final Path rootDir = new File(path).toPath();
 				
 				try {
 					Files.walkFileTree(rootDir, new FileVisitor<Path>() {
@@ -72,7 +75,6 @@ public class GenerateAdocsFromContractTests extends AbstractMojo {
 							boolean matches = this.pattern.matcher(path.toString())
 									.matches();
 							if (matches) {
-								getLog().info("dfdsf");
 								appendContract(stringBuilder, path);
 							}
 							return FileVisitResult.CONTINUE;
@@ -92,21 +94,15 @@ public class GenerateAdocsFromContractTests extends AbstractMojo {
 						}
 					});
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					getLog().info("There was error during generating docs! Generating docs from path: " + path + " aborted!", e);
 				}
-			} else {
-				getLog().info("No contracts found! Generating documentation from contract tests aborted!");
 			}
 		});
 		
-		// String outputAdoc = asciidoctor.convert(stringBuilder.toString(), new HashMap<String, Object>());
 		String outputAdoc = stringBuilder.toString();
-		// TODO: Can be parametrized
-		File outputDir = new File("target/generated-snippets");
+		File outputDir = new File(this.outputDirPath);
 		outputDir.mkdirs();
-		// TODO: Can be parametrized
-		File outputFile = new File(outputDir, "contracts.adoc");
+		File outputFile = new File(outputDir, this.outputFileName);
 		if (outputFile.exists()) {
 			outputFile.delete();
 		}
@@ -119,9 +115,8 @@ public class GenerateAdocsFromContractTests extends AbstractMojo {
 			throws IOException {
 		Collection<Contract> contracts = ContractVerifierDslConverter.convertAsCollection(path.getParent()
 				.toFile(), path.toFile());
-		// TODO: Can be parametrized
+		// TODO: fit it to our preferences
 		contracts.forEach(contract -> {
-			System.out.println("XXXXX");
 			stringBuilder.append("### ")
 					.append(path.getFileName()
 							.toString())
