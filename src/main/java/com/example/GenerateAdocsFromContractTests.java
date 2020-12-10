@@ -75,11 +75,11 @@ public class GenerateAdocsFromContractTests extends AbstractMojo {
 						@Override
 						public FileVisitResult visitFile(Path path, BasicFileAttributes mainAtts)
 								throws IOException {
-							getLog().info("File with path: " + path.getFileName()
-									.toString());
 							boolean matches = this.pattern.matcher(path.toString())
 									.matches();
 							if (matches) {
+								getLog().info("File with path: " + path.getFileName()
+										.toString());
 								appendContract(stringBuilder, path);
 							}
 							return FileVisitResult.CONTINUE;
@@ -121,8 +121,6 @@ public class GenerateAdocsFromContractTests extends AbstractMojo {
 				.toFile(), path.toFile());
 		
 		contracts.forEach(contract -> {
-			System.out.println("REQUEST: " + contract.getRequest());
-			System.out.println("RESPONSE: " + contract.getResponse());
 			
 			// TODO: replace it with some template processing
 			stringBuilder.append("'''")
