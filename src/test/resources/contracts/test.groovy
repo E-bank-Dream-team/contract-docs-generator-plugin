@@ -6,14 +6,12 @@ Contract.make {
 	description("""
 		Represents an example scenario of some contract
 		
-		```
 		given:
 			/url given endpoint
 		when:
 			Make GET request
 		then:
 			Successful response
-		```
 		
 		""")
 	request {
