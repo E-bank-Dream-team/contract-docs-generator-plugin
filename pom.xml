@@ -10,11 +10,20 @@
 	<name>contract-docs-generator-plugin</name>
 	<description>Contract docs generator maven plugin</description>
 
+	<distributionManagement>
+		<repository>
+			<id>github</id>
+			<name>GitHub E-Bank Dream Team Apache Maven Packages</name>
+			<url>https://maven.pkg.github.com/e-bank-dream-team/contract-docs-generator-plugin</url>
+		</repository>
+	</distributionManagement>
+
 	<properties>
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<spring.version>5.3.1</spring.version>
 		<spring.cloud.version>2.2.5.RELEASE</spring.cloud.version>
+		<groovy.version>3.0.7</groovy.version>
 	</properties>
 
 	<dependencies>
@@ -55,9 +64,10 @@
 		<dependency>
 			<groupId>org.codehaus.groovy</groupId>
 			<artifactId>groovy-all</artifactId>
-			<version>3.0.7</version>
+			<version>${groovy.version}</version>
 			<type>pom</type>
 		</dependency>
+
 	</dependencies>
 
 	<build>
